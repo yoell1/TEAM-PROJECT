@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fixer.verify.model.mapper.FixerMapper">
+<!-- 기사 프로필 조회 -->
+	<select id="selectFixerProfile" parameterType="string" resultType="FixerProfileDTO">
+		SELECT USER_ID, FIXER_NO, FIXER_APPROVAL,
+		       FIXER_APPROVED_AT, FIXER_REJECT_REASON,
+		       FIXER_INTRO, FIXER_CAREER
+		  FROM FIXER_PROFILE
+		 WHERE USER_ID = #{userId}
+	</select>
+	
+		<!-- 카테고리 전체 목록 ORDER BY 가 없으면 순서가 보장되지 않습니다 -->
+	<select id="selectCategoryList" resultType="CategoryDTO">
+		SELECT CATEGORY_ID, CATEGORY_NO, CATEGORY_ITEM
+		  FROM CATEGORY
+		 ORDER BY CATEGORY_NO
+	</select>
+
+
+	<!-- 기사의 자격증 목록  ORDER BY 가 없으면 순서가 보장되지 않습니다-->
+	<select id="selectLicensesByFixerId" parameterType="string" resultType="FixerLicenseDTO">
+		SELECT LICENSE_ID, FIXER_ID, LICENSE_NAME, LICENSE_NO,
+		       LICENSE_FILE, ISSUED_AT, UPLOADED_AT
+		  FROM FIXER_LICENSE
+		 WHERE FIXER_ID = #{fixerId}
+		 ORDER BY LICENSE_ID
+	</select>
+	
+		<!-- 신규 신청 -->
+	<insert id="insertFixerProfile" parameterType="FixerProfileDTO">
+		INSERT INTO FIXER_PROFILE (
+			USER_ID, FIXER_NO, FIXER_APPROVAL, FIXER_INTRO, FIXER_CAREER
+		) VALUES (
+			#{userId}, SEQ_FIXER_PROFILE.NEXTVAL, 'PENDING', #{fixerIntro}, #{fixerCareer}
+		)
+	</insert>
+
+
+	<!-- 재신청 (REJECTED → PENDING 으로 되돌리며 수정) -->
+<!-- #{} 는 자바에서 넘어온 값이 들어가는 자리지만, 'PENDING' 은 고정된 글자입니다.
+ 신청은 무조건 심사대기 상태로 시작하니까요. 자바에서 넘길 이유가 없습니다.-->
+	<update id="updateFixerProfile" parameterType="FixerProfileDTO">
+		UPDATE FIXER_PROFILE
+		   SET FIXER_INTRO = #{fixerIntro}, 
+		       FIXER_CAREER = #{fixerCareer},
+		       FIXER_APPROVAL = 'PENDING', 
+		       FIXER_REJECT_REASON = NULL,
+		       FIXER_APPROVED_AT = NULL
+		 WHERE USER_ID = #{userId}
+	</update>
+<!--
+	   SET FIXER_INTRO = #{fixerIntro},      새 소개
+       FIXER_CAREER = #{fixerCareer},        새 경력
+       FIXER_APPROVAL = 'PENDING',           ★ 상태 되돌리기
+       FIXER_REJECT_REASON = NULL,           ★ 옛 거절사유 지우기
+       FIXER_APPROVED_AT = NULL              ★ 초기화
+       재신청은 REJECTED 상태에서 일어나죠. 소개·경력만 고치고 끝내면:
+
+FIXER_APPROVAL = 'REJECTED'  ← 그대로 남음
+
+관리자 심사 목록에 안 뜹니다. (관리자는 PENDING 인 것만 보니까) 기사는 신청했다고 생각하는데 영원히 심사가 안 되는 거예요.
+
+그리고 FIXER_REJECT_REASON 에 옛날 거절 사유("자격증 사진이 흐림")가 남아 있으면, 새로 신청한 화면에 그게 계속 보입니다. 그래서 NULL 로 지웁니다.
+
+"상태를 바꾸는 작업은 관련된 컬럼을 함께 정리해야 한다"
+-->	
+<!--
+	
+FIXER_PROFILE 은 컬럼이 7개인데 5개만 적었습니다.
+컬럼	적었나	값
+USER_ID	✅	넘어온 값
+FIXER_NO	✅	시퀀스
+FIXER_APPROVAL	✅	'PENDING'
+FIXER_INTRO	✅	넘어온 값
+FIXER_CAREER	✅	넘어온 값
+FIXER_APPROVED_AT	❌	NULL
+FIXER_REJECT_REASON	❌	NULL
+안 적은 컬럼은 NULL 이 들어갑니다. 승인 시각과 거절 사유는 아직 심사 전이라 있을 수가 없죠. 비워두는 게 맞습니다.
+-->
+
+	<!-- 자격증 1건 등록 -->
+	<insert id="insertFixerLicense" parameterType="FixerLicenseDTO">
+		INSERT INTO FIXER_LICENSE (
+			LICENSE_ID, FIXER_ID, LICENSE_NAME, LICENSE_NO, LICENSE_FILE, ISSUED_AT
+		) VALUES (
+			SEQ_FIXER_LICENSE.NEXTVAL, #{fixerId}, #{licenseName},
+			#{licenseNo}, #{licenseFile}, #{issuedAt}
+		)
+	</insert>
+
+
+	<!-- 활동 지역 1건 등록 -->
+	<insert id="insertFixerRegion">
+		INSERT INTO FIXER_REGION (FIXER_REGION_ID, FIXER_ID, REGION_NAME)
+		VALUES (SEQ_FIXER_REGION.NEXTVAL, #{fixerId}, #{regionName})
+	</insert>
+
+
+	<!-- 수리 분야 1건 등록 -->
+	<insert id="insertFixerCategory">
+		INSERT INTO FIXER_CATEGORY (FIXER_CATEGORY_ID, FIXER_ID, CATEGORY_ID)
+		VALUES (SEQ_FIXER_CATEGORY.NEXTVAL, #{fixerId}, #{categoryId})
+	</insert>
+	
+		<!-- 재신청 시 기존 데이터 정리 -->
+
+	<delete id="deleteLicensesByFixerId" parameterType="string">
+		DELETE FROM FIXER_LICENSE
+		 WHERE FIXER_ID = #{fixerId}
+	</delete>
+
+	<delete id="deleteRegionsByFixerId" parameterType="string">
+		DELETE FROM FIXER_REGION
+		 WHERE FIXER_ID = #{fixerId}
+	</delete>
+
+	<delete id="deleteCategoriesByFixerId" parameterType="string">
+		DELETE FROM FIXER_CATEGORY
+		 WHERE FIXER_ID = #{fixerId}
+	</delete>
+
+</mapper>
