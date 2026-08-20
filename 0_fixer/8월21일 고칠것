@@ -142,6 +142,8 @@ JobController        5곳
 - RequestMapper 지역 매칭 : RECEIPT_ADDRESS LIKE '%지역%' 이라 인덱스 미사용
   데이터 적어 당장은 무방. REPAIR_REQUESTS 에 REGION_NAME 컬럼을 두면
   정확 일치 + 인덱스로 개선 가능 (접수 등록 기능과 협의 필요)
+보안관련 질문.
+"SQL 인젝션은 마이바티스 #{} 로 파라미터 바인딩해서 막았고, XSS 는 JSP 출력에 <c:out> 을 써서 이스케이프했습니다."
 
 
 
