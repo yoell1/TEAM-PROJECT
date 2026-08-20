@@ -171,6 +171,12 @@ feature/F-17-job-management 브랜치에 한 번에 커밋
    컨트롤러 try-catch 로 못 잡음.
    @ControllerAdvice + @ExceptionHandler 로 처리 필요.
 
+6. 검증 실패 후 폼으로 돌아갈 때 사용자 입력값이 사라짐.
+   redirect 라 새 요청이 되면서 @ModelAttribute 로 받은 form 이 소멸.
+   개선 시 ra.addFlashAttribute("form", form) 으로 넘기고
+   JSP 에서 ${not empty form ? form.xxx : ...} 로 우선 적용.
+   단 MultipartFile 은 넘길 수 없어 파일은 재선택 필요.
+
 ═══════════════════════════════════════════════════════
 [예상 질문 답변]
 
