@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fixer.estimate.model.mapper.EstimateMapper">
+
+	<sql id="estimateColumns">
+		       e.ESTIMATES_ID,
+		       e.REPAIR_NO,
+		       e.FIXER_ID,
+		       e.ESTIMATES_PRICE,
+		       e.ESTIMATES_STATUS,
+		       e.EST_DURATION,
+		       e.EST_MESSAGE,
+		       TO_CHAR(e.ESTIMATES_PROPOSED_AT, 'YYYY-MM-DD HH24:MI') AS PROPOSED_AT_TEXT,
+		       TO_CHAR(e.ACCEPTED_AT,           'YYYY-MM-DD HH24:MI') AS ACCEPTED_AT_TEXT,
+		       r.RECEIPT_CODE,
+		       r.RECEIPT_TITLE,
+		       r.RECEIPT_STATUS,
+		       c.CATEGORY_ITEM,
+		       u.USER_NAME
+	</sql>
+
+	<select id="selectMyEstimate" resultType="EstimateDTO">
+		SELECT <include refid="estimateColumns"/>
+		  FROM ESTIMATES e
+		  JOIN REPAIR_REQUESTS r ON r.REPAIR_NO   = e.REPAIR_NO
+		  JOIN CATEGORY        c ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS           u ON u.USER_ID     = r.USER_ID
+		 WHERE e.REPAIR_NO = #{repairNo}
+		   AND e.FIXER_ID  = #{fixerId}
+	</select>
+
+	<select id="selectMyEstimateById" resultType="EstimateDTO">
+		SELECT <include refid="estimateColumns"/>
+		  FROM ESTIMATES e
+		  JOIN REPAIR_REQUESTS r ON r.REPAIR_NO   = e.REPAIR_NO
+		  JOIN CATEGORY        c ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS           u ON u.USER_ID     = r.USER_ID
+		 WHERE e.ESTIMATES_ID = #{estimatesId}
+		   AND e.FIXER_ID     = #{fixerId}
+	</select>
+
+	<select id="selectMyEstimates" parameterType="string" resultType="EstimateDTO">
+		SELECT <include refid="estimateColumns"/>
+		  FROM ESTIMATES e
+		  JOIN REPAIR_REQUESTS r ON r.REPAIR_NO   = e.REPAIR_NO
+		  JOIN CATEGORY        c ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS           u ON u.USER_ID     = r.USER_ID
+		 WHERE e.FIXER_ID = #{fixerId}
+		 ORDER BY e.ESTIMATES_PROPOSED_AT DESC
+	</select>
+
+	<select id="selectOptionCodes" parameterType="long" resultType="string">
+		SELECT OPTION_CODE FROM ESTIMATES_OPTION
+		 WHERE ESTIMATES_ID = #{estimatesId}
+		 ORDER BY OPTION_ID
+	</select>
+
+
+	<insert id="insertEstimate" parameterType="EstimateForm">
+		<!-- 오라클은 INSERT 전에 시퀀스를 뽑아 자바로 돌려받는다 (order="BEFORE")
+		     그래야 방금 만든 ESTIMATES_ID 로 옵션을 이어서 넣을 수 있다 -->
+		<selectKey keyProperty="estimatesId" resultType="long" order="BEFORE">
+			SELECT SEQ_ESTIMATES.NEXTVAL FROM DUAL
+		</selectKey>
+
+		INSERT INTO ESTIMATES (
+			ESTIMATES_ID, REPAIR_NO, FIXER_ID, ESTIMATES_PRICE,
+			ESTIMATES_STATUS, EST_DURATION, EST_MESSAGE
+		) VALUES (
+			#{estimatesId}, #{repairNo}, #{fixerId}, #{estimatesPrice},
+			'PROPOSED', #{estDuration}, #{estMessage}
+		)
+	</insert>
+
+	<!-- 수정도 상태를 PROPOSED 로 유지. 고객이 아직 안 본 견적을 고치는 것 -->
+	<update id="updateEstimate" parameterType="EstimateForm">
+		UPDATE ESTIMATES
+		   SET ESTIMATES_PRICE      = #{estimatesPrice},
+		       EST_DURATION         = #{estDuration},
+		       EST_MESSAGE          = #{estMessage},
+		       ESTIMATES_PROPOSED_AT = SYSTIMESTAMP
+		 WHERE ESTIMATES_ID   = #{estimatesId}
+		   AND ESTIMATES_STATUS = 'PROPOSED'
+	</update>
+
+	<delete id="deleteOptions" parameterType="long">
+		DELETE FROM ESTIMATES_OPTION WHERE ESTIMATES_ID = #{estimatesId}
+	</delete>
+
+	<insert id="insertOption">
+		INSERT INTO ESTIMATES_OPTION (OPTION_ID, ESTIMATES_ID, OPTION_CODE)
+		VALUES (SEQ_ESTIMATES_OPTION.NEXTVAL, #{estimatesId}, #{optionCode})
+	</insert>
+
+	<!-- 조건을 WHERE 에 전부 넣어서, 자격이 없으면 0건이 수정되게 한다 -->
+	<update id="withdrawEstimate">
+		UPDATE ESTIMATES
+		   SET ESTIMATES_STATUS = 'WITHDRAWN'
+		 WHERE ESTIMATES_ID     = #{estimatesId}
+		   AND FIXER_ID         = #{fixerId}
+		   AND ESTIMATES_STATUS = 'PROPOSED'
+	</update>
+
+</mapper>

@@ -1,24 +1,13 @@
 package com.fixer.verify.model.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@ToString
+@Getter @Setter @NoArgsConstructor @ToString
 public class CategoryDTO {
-
-	/*
-CATEGORY_ID		
-CATEGORY_NO		
-CATEGORY_ITEM
-	 */
-	private String categoryId;
-	private int categoryNo;
-	private String categoryItem;
+	private String categoryId;    // CATEGORY_ID   'PC'
+	private int    categoryNo;    // CATEGORY_NO   1
+	private String categoryItem;  // CATEGORY_ITEM '컴퓨터/노트북'
 }

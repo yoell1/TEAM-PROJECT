@@ -1,0 +1,25 @@
+spring.application.name=fixer
+server.port=8989
+
+spring.mvc.view.prefix=/WEB-INF/views/
+spring.mvc.view.suffix=.jsp
+
+# 각자 환경에 맞게 채워서 application.properties 로 복사해 쓰세요
+spring.datasource.url=jdbc:oracle:thin:@호스트:포트:xe
+spring.datasource.username=계정
+spring.datasource.password=비밀번호
+spring.datasource.driver-class-name=oracle.jdbc.OracleDriver
+
+mybatis.mapper-locations=classpath:mappers/**/*.xml
+mybatis.type-aliases-package=com.fixer
+mybatis.configuration.jdbc-type-for-null=NULL
+mybatis.configuration.map-underscore-to-camel-case=true
+
+logging.level.com.fixer=DEBUG
+
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=50MB
+
+file.upload-dir=uploads
+file.upload-dir.license=uploads/license
+file.web-prefix.license=/uploads/license

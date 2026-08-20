@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fixer.job.model.mapper.JobMapper">
+
+	<sql id="jobColumns">
+		       r.REPAIR_NO,
+		       r.RECEIPT_CODE,
+		       r.RECEIPT_TITLE,
+		       r.MODEL_NAME,
+		       r.RECEIPT_DETAILS,
+		       r.RECEIPT_ADDRESS,
+		       r.RECEIPT_STATUS,
+		       r.RECEIPT_URGENT,
+		       r.CANCEL_REASON,
+		       TO_CHAR(r.RECEIPT_VISIT_AT,   'YYYY-MM-DD HH24:MI') AS VISIT_AT_TEXT,
+		       TO_CHAR(r.VISIT_CONFIRMED_AT, 'YYYY-MM-DD HH24:MI') AS VISIT_CONFIRMED_AT_TEXT,
+		       TO_CHAR(r.CANCELED_AT,        'YYYY-MM-DD HH24:MI') AS CANCELED_AT_TEXT,
+		       c.CATEGORY_ITEM,
+		       u.USER_NAME,
+		       u.USER_PNUMBER,
+		       e.ESTIMATES_PRICE AS MY_PRICE,
+		       e.EST_DURATION    AS MY_DURATION,
+		       e.EST_MESSAGE     AS MY_MESSAGE
+	</sql>
+
+	<!-- JOIN 조건 자체가 소유권 검사다.
+	     내 ACCEPTED 견적이 없으면 애초에 행이 안 나온다 -->
+	<sql id="jobFrom">
+		  FROM REPAIR_REQUESTS r
+		  JOIN ESTIMATES e ON e.REPAIR_NO        = r.REPAIR_NO
+		                  AND e.FIXER_ID         = #{fixerId}
+		                  AND e.ESTIMATES_STATUS = 'ACCEPTED'
+		  JOIN CATEGORY c  ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS    u  ON u.USER_ID     = r.USER_ID
+	</sql>
+
+	<select id="selectMyJobs" parameterType="string" resultType="JobDTO">
+		SELECT <include refid="jobColumns"/>
+		<include refid="jobFrom"/>
+		 ORDER BY CASE r.RECEIPT_STATUS
+		            WHEN 'IN_PROGRESS' THEN 1
+		            WHEN 'MATCHED'     THEN 2
+		            WHEN 'COMPLETED'   THEN 3
+		            ELSE 4
+		          END,
+		          r.RECEIPT_VISIT_AT
+	</select>
+
+	<select id="selectMyJob" resultType="JobDTO">
+		SELECT <include refid="jobColumns"/>
+		<include refid="jobFrom"/>
+		 WHERE r.REPAIR_NO = #{repairNo}
+	</select>
+
+	<update id="updateJobStatus">
+		UPDATE REPAIR_REQUESTS r
+		   SET r.RECEIPT_STATUS = #{toStatus}
+		<if test='toStatus == "IN_PROGRESS"'>
+		     , r.VISIT_CONFIRMED_AT = SYSTIMESTAMP
+		</if>
+		 WHERE r.REPAIR_NO      = #{repairNo}
+		   AND r.RECEIPT_STATUS = #{fromStatus}
+		   AND EXISTS (
+		           SELECT 1 FROM ESTIMATES e
+		            WHERE e.REPAIR_NO        = r.REPAIR_NO
+		              AND e.FIXER_ID         = #{fixerId}
+		              AND e.ESTIMATES_STATUS = 'ACCEPTED'
+		       )
+	</update>
+
+	<update id="cancelJob">
+		UPDATE REPAIR_REQUESTS r
+		   SET r.RECEIPT_STATUS = 'CANCELED',
+		       r.CANCEL_BY      = #{fixerId},
+		       r.CANCEL_REASON  = #{reason},
+		       r.CANCELED_AT    = SYSTIMESTAMP
+		 WHERE r.REPAIR_NO = #{repairNo}
+		   AND r.RECEIPT_STATUS IN ('MATCHED', 'IN_PROGRESS')
+		   AND EXISTS (
+		           SELECT 1 FROM ESTIMATES e
+		            WHERE e.REPAIR_NO        = r.REPAIR_NO
+		              AND e.FIXER_ID         = #{fixerId}
+		              AND e.ESTIMATES_STATUS = 'ACCEPTED'
+		       )
+	</update>
+
+</mapper>

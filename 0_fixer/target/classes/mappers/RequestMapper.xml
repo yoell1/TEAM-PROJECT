@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.fixer.request.model.mapper.RequestMapper">
+
+	<select id="selectFixerApproval" parameterType="string" resultType="string">
+		SELECT FIXER_APPROVAL FROM FIXER_PROFILE WHERE FIXER_ID = #{fixerId}
+	</select>
+
+
+	<!-- 목록에서도 상세에서도 똑같이 쓰는 조건. 한 곳에만 적어두고 재사용한다 -->
+	<sql id="visibleToFixer">
+		    r.RECEIPT_STATUS = 'WAITING'
+
+		<!-- 내가 할 수 있는 분야인가 -->
+		AND EXISTS (
+		        SELECT 1 FROM FIXER_CATEGORY fc
+		         WHERE fc.FIXER_ID = #{fixerId}
+		           AND fc.CATEGORY_ID = r.CATEGORY_ID
+		    )
+
+		<!-- 내 활동지역에 속한 주소인가 -->
+		AND EXISTS (
+		        SELECT 1 FROM FIXER_REGION fr
+		         WHERE fr.FIXER_ID = #{fixerId}
+		           AND r.RECEIPT_ADDRESS LIKE '%' || fr.REGION_NAME || '%'
+		    )
+
+		<!-- 내가 차단한 고객이 아닌가 -->
+		AND NOT EXISTS (
+		        SELECT 1 FROM FIXER_BLOCK b
+		         WHERE b.FIXER_ID = #{fixerId}
+		           AND b.USER_ID  = r.USER_ID
+		    )
+	</sql>
+
+
+	<select id="selectNearbyRequests" parameterType="string" resultType="RepairRequestDTO">
+		SELECT r.REPAIR_NO,
+		       r.RECEIPT_CODE,
+		       r.RECEIPT_TITLE,
+		       r.MODEL_NAME,
+		       r.RECEIPT_ADDRESS,
+		       r.RECEIPT_STATUS,
+		       r.RECEIPT_URGENT,
+		       r.CATEGORY_ID,
+		       c.CATEGORY_ITEM,
+		       u.USER_NAME,
+		       TO_CHAR(r.RECEIPT_VISIT_AT,   'YYYY-MM-DD HH24:MI') AS VISIT_AT_TEXT,
+		       TO_CHAR(r.RECEIPT_CREATED_AT, 'YYYY-MM-DD HH24:MI') AS CREATED_AT_TEXT,
+		       (SELECT MAX(e.ESTIMATES_ID) FROM ESTIMATES e
+		         WHERE e.REPAIR_NO = r.REPAIR_NO
+		           AND e.FIXER_ID  = #{fixerId})                   AS MY_ESTIMATE_ID,
+		       (SELECT COUNT(*) FROM REPAIR_PHOTO p
+		         WHERE p.REPAIR_NO = r.REPAIR_NO)                  AS PHOTO_COUNT
+		  FROM REPAIR_REQUESTS r
+		  JOIN CATEGORY c ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS    u ON u.USER_ID     = r.USER_ID
+		 WHERE <include refid="visibleToFixer"/>
+		 ORDER BY r.RECEIPT_URGENT DESC, r.RECEIPT_CREATED_AT DESC
+	</select>
+
+
+	<select id="selectRequestDetail" resultType="RepairRequestDTO">
+		SELECT r.REPAIR_NO,
+		       r.RECEIPT_CODE,
+		       r.RECEIPT_TITLE,
+		       r.MODEL_NAME,
+		       r.RECEIPT_DETAILS,
+		       r.RECEIPT_ADDRESS,
+		       r.RECEIPT_STATUS,
+		       r.RECEIPT_URGENT,
+		       r.CATEGORY_ID,
+		       c.CATEGORY_ITEM,
+		       u.USER_NAME,
+		       TO_CHAR(r.RECEIPT_VISIT_AT,   'YYYY-MM-DD HH24:MI') AS VISIT_AT_TEXT,
+		       TO_CHAR(r.RECEIPT_CREATED_AT, 'YYYY-MM-DD HH24:MI') AS CREATED_AT_TEXT,
+		       (SELECT MAX(e.ESTIMATES_ID) FROM ESTIMATES e
+		         WHERE e.REPAIR_NO = r.REPAIR_NO
+		           AND e.FIXER_ID  = #{fixerId})                   AS MY_ESTIMATE_ID
+		  FROM REPAIR_REQUESTS r
+		  JOIN CATEGORY c ON c.CATEGORY_ID = r.CATEGORY_ID
+		  JOIN USERS    u ON u.USER_ID     = r.USER_ID
+		 WHERE r.REPAIR_NO = #{repairNo}
+		   AND <include refid="visibleToFixer"/>
+	</select>
+
+
+	<select id="selectRequestPhotos" parameterType="long" resultType="RepairPhotoDTO">
+		SELECT PHOTO_ID, REPAIR_NO, PHOTO_PATH, PHOTO_TYPE, PHOTO_ORDER
+		  FROM REPAIR_PHOTO
+		 WHERE REPAIR_NO = #{repairNo}
+		   AND PHOTO_TYPE = 'REQUEST'
+		 ORDER BY PHOTO_ORDER
+	</select>
+
+</mapper>
+<!--
+
+<sql> + <include> — 같은 조건을 목록과 상세에서 두 번 쓰잖아. 복붙해두면 나중에 한쪽만 고쳐서 목록엔 안 보이는데 상세로는 들어가지는 보안 구멍이 생겨. 한 곳에만 적고 갖다 쓰는 거야.
+
+JOIN 대신 EXISTS — 지역 조건을 JOIN FIXER_REGION 으로 짜면, 기사가 강남구·서초구 둘 다 등록했고 주소가 둘 다 걸릴 때 같은 접수가 2줄로 나와. DISTINCT 로 덮을 수도 있지만, EXISTS 는 "하나라도 있으면 참" 이라 애초에 줄이 안 늘어나. 조건 확인엔 EXISTS 가 맞아.
+
+상세 조회에도 같은 조건을 거는 이유 — 주소창에 /fixer/requests/2 라고 직접 치면 어떻게 될까? 조건이 없으면 부산 접수도, 남의 분야도 다 들여다볼 수 있어. 목록에 안 띄우는 것과 못 보게 막는 건 다른 얘기야.-->

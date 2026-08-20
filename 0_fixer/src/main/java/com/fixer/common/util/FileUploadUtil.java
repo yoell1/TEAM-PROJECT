@@ -2,6 +2,8 @@ package com.fixer.common.util;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.springframework.stereotype.Component;
@@ -10,74 +12,53 @@ import org.springframework.web.multipart.MultipartFile;
 @Component
 public class FileUploadUtil {
 
-	/**
-	 * 업로드된 파일을 서버에 저장하고 결과를 반환
-	 *
-	 * @param file       업로드된 파일
-	 * @param uploadDir  저장할 폴더 (예: uploads/license)
-	 * @param webPrefix  웹에서 접근할 주소 (예: /uploads/license)
-	 */
-	public SavedFile save(MultipartFile file, String uploadDir, String webPrefix)
-			throws IllegalStateException, IOException {
+	// 자격증 증빙으로 허용할 확장자
+	private static final List<String> ALLOWED = List.of(".jpg", ".jpeg", ".png", ".pdf");
 
-		// 1) 파일이 없으면 아무것도 안 함
+	public SavedFile save(MultipartFile file, String uploadDir, String webPrefix)
+			throws IOException {
+
 		if (file == null || file.isEmpty()) {
+			return null;                       // 안 올린 칸은 조용히 건너뜀
+		}
+
+		String originalName = file.getOriginalFilename();
+		if (originalName == null) {
 			return null;
 		}
 
-		// 2) 원본 파일명
-		String originalName = file.getOriginalFilename();
-
-		// 3) 확장자 추출
+		// 확장자 추출 + 검사
 		String ext = "";
-		int dotIndex = originalName.lastIndexOf(".");
-		if (dotIndex > -1) {
-			ext = originalName.substring(dotIndex);
+		int dot = originalName.lastIndexOf('.');
+		if (dot > -1) {
+			ext = originalName.substring(dot).toLowerCase(Locale.ROOT);
+		}
+		if (!ALLOWED.contains(ext)) {
+			throw new IllegalStateException(
+					"증빙파일은 jpg, png, pdf 만 올릴 수 있습니다. (" + originalName + ")");
 		}
 
-		// 4) 겹치지 않는 새 파일명 생성
+		// 겹치지 않는 새 이름
 		String saveName = UUID.randomUUID() + ext;
 
-		// 5) 폴더가 없으면 생성
 		File dir = new File(uploadDir).getAbsoluteFile();
 		if (!dir.exists()) {
 			dir.mkdirs();
 		}
 
-		// 6) 실제 저장
-		File target = new File(dir, saveName);
-		file.transferTo(target);
+		file.transferTo(new File(dir, saveName));
 
-		// 7) 결과 반환
-		String path = webPrefix + "/" + saveName;
-
-		return new SavedFile(originalName, saveName, path);
+		return new SavedFile(originalName, saveName, webPrefix + "/" + saveName);
 	}
-	
-	/**
-	 * 저장된 파일을 서버에서 삭제
-	 *
-	 * @param webPath    DB에 저장된 웹 경로 (/uploads/license/a3f2c1.png)
-	 * @param uploadDir  실제 저장 폴더 (uploads/license)
-	 */
-	public boolean delete(String webPath, String uploadDir) {
 
-		if (webPath == null || webPath.isEmpty()) {
-			return false;
+	public void delete(String webPath, String uploadDir) {
+		if (webPath == null || webPath.isBlank()) {
+			return;
 		}
-		if (uploadDir == null || uploadDir.isEmpty()) {
-			return false;
-		}
-
-		// 웹 경로에서 파일명만 추출
-		String fileName = webPath.substring(webPath.lastIndexOf("/") + 1);
-
+		String fileName = webPath.substring(webPath.lastIndexOf('/') + 1);
 		File target = new File(new File(uploadDir).getAbsoluteFile(), fileName);
-
 		if (target.exists()) {
 			target.delete();
 		}
-
-		return true;
 	}
 }
