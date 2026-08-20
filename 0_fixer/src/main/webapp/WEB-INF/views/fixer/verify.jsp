@@ -10,9 +10,7 @@
 
 <h2>기사 인증 신청</h2>
 
-<c:if test="${not empty message}">
-	<p style="color:blue; font-weight:bold;">${message}</p>
-</c:if>
+<c:if test="${not empty message}"><p style="color:blue; font-weight:bold;"><c:out value="${message}"/></p></c:if>
 
 <c:choose>
 
@@ -29,7 +27,7 @@
 		<c:if test="${profile.fixerApproval eq 'REJECTED'}">
 			<p style="color:red;">
 				이전 신청이 거절되었습니다.<br>
-				사유: ${profile.fixerRejectReason}<br>
+				사유: <c:out value="${profile.fixerRejectReason}"/><br>
 				내용을 보완해서 다시 신청해주세요.
 			</p>
 		</c:if>
@@ -39,11 +37,11 @@
 			<h3>1. 기본 정보</h3>
 			<p>
 				자기소개 (500자 이내)<br>
-				<textarea name="fixerIntro" rows="4" cols="50" maxlength="500">${profile.fixerIntro}</textarea>
+				<textarea name="fixerIntro" rows="4" cols="50" maxlength="500"><c:out value="${profile.fixerIntro}"/></textarea>
 			</p>
 			<p>
 				경력 (200자 이내)<br>
-				<input type="text" name="fixerCareer" size="50" maxlength="200" value="${profile.fixerCareer}">
+				<input type="text" name="fixerCareer" size="50" maxlength="200" value="<c:out value='${profile.fixerCareer}'/>">
 			</p>
 
 			<h3>2. 활동 지역 (1개 이상)</h3>
@@ -58,7 +56,7 @@
 			<c:forEach var="category" items="${categoryList}">
 				<label>
 					<input type="checkbox" name="categoryIds" value="${category.categoryId}">
-					${category.categoryItem}
+					<c:out value="${category.categoryItem}"/>
 				</label><br>
 			</c:forEach>
 
