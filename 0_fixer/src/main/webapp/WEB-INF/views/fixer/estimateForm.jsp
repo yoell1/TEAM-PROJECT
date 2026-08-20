@@ -10,21 +10,17 @@
 		label.opt { display:inline-block; margin-right:14px; }
 	</style>
 </head>
-<head>
-</head>
 <body>
 
 <h2>견적 제시</h2>
 
-<c:if test="${not empty message}">
-	<p style="color:red;">${message}</p>
-</c:if>
+<c:if test="${not empty message}"><p style="color:red;"><c:out value="${message}"/></p></c:if>
 
 <div class="box">
-	<strong>${req.receiptCode}</strong> · ${req.categoryItem}<br>
-	${req.receiptTitle}<br>
-	고객 ${req.userName} · 방문 희망 ${req.visitAtText}<br>
-	${req.receiptAddress}
+	<strong><c:out value="${req.receiptCode}"/></strong> · <c:out value="${req.categoryItem}"/><br>
+	<c:out value="${req.receiptTitle}"/><br>
+	고객 <c:out value="${req.userName}"/> · 방문 희망 ${req.visitAtText}<br>
+	<c:out value="${req.receiptAddress}"/>
 </div>
 
 <c:if test="${not empty estimate}">
@@ -39,21 +35,18 @@
 	<input type="hidden" name="repairNo" value="${req.repairNo}">
 
 	<p>
-		견적 금액 (원) <br>
-		<input type="number" name="estimatesPrice" min="1" max="10000000" required
-		       value="${estimate.estimatesPrice}">
+		견적 금액 (원)<br>
+		<input type="number" name="estimatesPrice" min="1" max="10000000" required value="${estimate.estimatesPrice}">
 	</p>
 
 	<p>
-		예상 소요시간 <br>
-		<input type="text" name="estDuration" size="30" maxlength="50"
-		       placeholder="예: 약 30분" value="${estimate.estDuration}">
+		예상 소요시간<br>
+		<input type="text" name="estDuration" size="30" maxlength="50" placeholder="예: 약 30분" value="<c:out value='${estimate.estDuration}'/>">
 	</p>
 
 	<p>
-		고객에게 전달할 메시지 <br>
-		<textarea name="estMessage" rows="4" cols="50" maxlength="500"
-		          placeholder="예: 메인보드 점검 먼저 해보겠습니다. 출장비 포함입니다.">${estimate.estMessage}</textarea>
+		고객에게 전달할 메시지<br>
+		<textarea name="estMessage" rows="4" cols="50" maxlength="500"><c:out value="${estimate.estMessage}"/></textarea>
 	</p>
 
 	<p>
@@ -61,9 +54,7 @@
 		<c:forEach var="opt" items="${optionList}">
 			<label class="opt">
 				<input type="checkbox" name="optionCodes" value="${opt.code}"
-					<c:forEach var="saved" items="${estimate.optionCodes}">
-						<c:if test="${saved eq opt.code}">checked</c:if>
-					</c:forEach>
+					<c:forEach var="saved" items="${estimate.optionCodes}"><c:if test="${saved eq opt.code}">checked</c:if></c:forEach>
 				>
 				${opt.label}
 			</label>
