@@ -43,7 +43,7 @@
 					<td class="${e.estimatesStatus}">${e.estimatesStatus}</td>
 					<td>${e.proposedAtText}</td>
 					<td>
-						<c:if test="${e.estimatesStatus eq 'PROPOSED'}"><a href="/fixer/estimates/new/${e.repairNo}">수정</a> <form action="/fixer/estimates/${e.estimatesId}/withdraw" method="post" style="display:inline;"><button type="submit">철회</button></form></c:if>
+						<c:if test="${e.estimatesStatus eq 'PROPOSED'}"><a href="/fixer/estimates/new/${e.repairNo}">수정</a> <form action="/fixer/estimates/${e.estimatesId}/withdraw" method="post" style="display:inline;"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/><button type="submit">철회</button></form></c:if>
 					</td>
 				</tr>
 			</c:forEach>
