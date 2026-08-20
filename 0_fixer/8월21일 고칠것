@@ -1,0 +1,35 @@
+FixerServiceImpl.java   자격증 검증을 파일 저장 앞으로 + 실패 시 업로드 파일 정리
+verify.jsp              c:out 적용
+requests.jsp            c:out 적용
+requestDetail.jsp       c:out 적용
+estimates.jsp           c:out 적용
+estimateForm.jsp        c:out 적용
+jobs.jsp                c:out 적용
+jobDetail.jsp           c:out 적용
+
+bash
+git commit -m "fix(F-14): 자격증 검증을 파일 저장 이전으로 이동, 실패 시 업로드 파일 정리"
+git commit -m "fix: XSS 방지 - 사용자 입력 출력 시 c:out 으로 이스케이프"
+내일 팀 레포에 반영할 때
+
+브랜치가 쌓여 있으니 파일별로 해당 브랜치에서 고쳐야 해:
+
+FixerServiceImpl, verify.jsp        → feature/F-14-fixer-verify
+requests.jsp, requestDetail.jsp     → feature/F-15-nearby-requests
+estimates.jsp, estimateForm.jsp     → feature/F-16-estimate-submit
+jobs.jsp, jobDetail.jsp             → feature/F-17-job-management
+
+이미 PR 이 열려 있으니 해당 브랜치에 커밋해서 push 하면 PR 에 자동으로 반영돼. PR 을 새로 만들 필요 없어.
+
+번거로우면 F-17 브랜치에 한꺼번에 올려도 돼. 어차피 순서대로 머지되니까 결과는 같아. 리뷰가 조금 지저분해질 뿐이야.
+
+다음 실행시 할것. 에 추가
+[오늘 추가로 고친 것 - 팀 레포 반영 필요]
+- FixerServiceImpl: 자격증 검증을 파일 저장 앞으로 (고아 파일 방지)
+- JSP 7개: ${} → <c:out> (XSS 방지)
+  단, 서버가 만든 값(코드/날짜/상태/숫자)은 그대로 둠
+
+[아직 안 한 것]
+- 상태값 CHECK 제약 팀에 제안 (FIXER_APPROVAL 등)
+- 통합: 패키지 com.fixer → com.surit, 위치 이동, pom 의존성 확인
+- 로그인 붙으면 TempLogin 삭제
