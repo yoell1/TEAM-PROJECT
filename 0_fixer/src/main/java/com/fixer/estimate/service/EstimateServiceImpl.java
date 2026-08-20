@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fixer.common.FixerGuard;
 import com.fixer.estimate.model.dto.EstimateDTO;
 import com.fixer.estimate.model.dto.EstimateForm;
 import com.fixer.estimate.model.dto.EstimateOption;
@@ -20,19 +21,19 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EstimateServiceImpl implements EstimateService {
 
-	private static final String APPROVED  = "APPROVED";
 	private static final String PROPOSED  = "PROPOSED";
 	private static final long   MAX_PRICE = 10_000_000L;
 
 	private final EstimateMapper mapper;
 	private final RequestMapper  requestMapper;   // 접수 열람 자격 검사를 F-15 것과 공유
+	private final FixerGuard     guard;
 
 
 	@Override
 	@Transactional(readOnly = true)
 	public EstimateDTO getMyEstimate(Long repairNo, String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		EstimateDTO estimate = mapper.selectMyEstimate(repairNo, fixerId);
 		fillOptions(estimate);
@@ -45,7 +46,7 @@ public class EstimateServiceImpl implements EstimateService {
 	@Transactional(readOnly = true)
 	public List<EstimateDTO> getMyEstimates(String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		List<EstimateDTO> list = mapper.selectMyEstimates(fixerId);
 		for (EstimateDTO e : list) {
@@ -59,7 +60,7 @@ public class EstimateServiceImpl implements EstimateService {
 	@Transactional(rollbackFor = Exception.class)
 	public void submit(String fixerId, EstimateForm form) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 		validate(form);
 
 		// 내가 볼 수 있는(= 견적 낼 수 있는) 접수인지 F-15 조건 그대로 재사용
@@ -94,7 +95,7 @@ public class EstimateServiceImpl implements EstimateService {
 	@Transactional(rollbackFor = Exception.class)
 	public void withdraw(String fixerId, Long estimatesId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		int updated = mapper.withdrawEstimate(estimatesId, fixerId);
 
@@ -154,18 +155,6 @@ public class EstimateServiceImpl implements EstimateService {
 		}
 		if (form.getEstMessage() != null && form.getEstMessage().length() > 500) {
 			throw new IllegalStateException("전달 메시지는 500자를 넘을 수 없습니다.");
-		}
-	}
-
-	private void requireApprovedFixer(String fixerId) {
-
-		String approval = requestMapper.selectFixerApproval(fixerId);
-
-		if (approval == null) {
-			throw new IllegalStateException("기사 인증 신청을 먼저 해주세요.");
-		}
-		if (!APPROVED.equals(approval)) {
-			throw new IllegalStateException("기사 인증이 완료된 후 이용할 수 있습니다.");
 		}
 	}
 }
