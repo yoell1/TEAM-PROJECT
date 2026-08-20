@@ -1,7 +1,12 @@
 ═══════════════════════════════════════════════════════
-조 레포: https://github.com/philip107-jo/Surit
-로컬:    C:\Users\user1\Desktop\12\Surit\0_fixer
+조 레포:   https://github.com/philip107-jo/Surit
+로컬:     C:\Users\user1\Desktop\12\Surit\0_fixer
 개인 백업: https://github.com/yoell1/TEAM-PROJECT (공개)
+
+담당: F-14 기사인증 / F-15 접수조회 / F-16 견적 / F-17 작업관리
+브랜치: feature/F-14-fixer-verify → F-15-nearby-requests
+        → F-16-estimate-submit → F-17-job-management  (순서대로 쌓임)
+PR: #9 #10 #11 #12  (F-14 부터 순서대로 머지해야 함)
 ═══════════════════════════════════════════════════════
 
 [내일 할 일]
@@ -55,22 +60,92 @@ feature/F-17-job-management 브랜치에 한 번에 커밋
 - 팀 서버 시퀀스를 최대값 뒤로 밀어둠 (번호 구멍 정상)
 
 ═══════════════════════════════════════════════════════
-[로그인(F-01) 붙은 뒤 — 내 몫]
-1. 로그인 담당자에게 확인
-   - 세션 키 이름 / 담는 타입 / 인터셉터 사용 여부
-2. TempLogin.java 삭제 → 컴파일 에러 나는 13곳을 세션 조회로 교체
-   (컴파일러를 체크리스트로 씀)
+[팀 결정사항 — 확정]
 
-   방법 A (세션 직접)
-     @SessionAttribute("loginUser") UserDTO loginUser
-     → service.getMyJobs(loginUser.getUserId())
-   방법 B (시큐리티)
-     @AuthenticationPrincipal CustomUserDetails user
-     → service.getMyJobs(user.getUsername())
+로그인      세션 직접 방식. 스프링 시큐리티 로그인 안 씀
+시큐리티    의존성은 유지. csrf 만 켜서 CSRF 보호 받음
+비밀번호    BCryptPasswordEncoder 사용 가능 (SecurityConfig 에 이미 있음)
+권한 체크   인터셉터로 처리 (담당자 확인 필요)
 
-3. SecurityConfig 확인 (permitAll → hasRole, csrf 다시 켜기)
-   ※ 지금은 인가만 있고 인증이 없는 상태.
-     fixerId 가 하드코딩이라 누구나 fixer1 로 동작함
+═══════════════════════════════════════════════════════
+[로그인(F-01) 붙은 뒤 — 내가 할 일]
+
+──── 1. 로그인 담당자에게 먼저 물어볼 것 ────
+
+  □ 세션에 어떤 이름으로 담나요?      예) "loginUser"
+  □ 어떤 타입으로 담나요?             예) UserDTO / String
+  □ 로그인 체크 인터셉터를 공용으로 만드나요?
+  □ csrf 는 언제 켤 예정인가요?
+
+  ※ 이거 정해지기 전에 짐작으로 짜면 전부 다시 고쳐야 함
+
+──── 2. TempLogin 교체 (13곳) ────
+
+  [방법]
+  ① TempLogin.java 를 먼저 삭제
+  ② 컴파일 에러 나는 곳이 = 고쳐야 할 곳 전부
+     (Problems 뷰에 목록으로 뜸. 컴파일러를 체크리스트로 씀)
+  ③ 하나씩 세션 조회로 교체
+
+  [교체 전]
+    public String list(Model model) {
+        model.addAttribute("jobList", service.getMyJobs(TempLogin.FIXER_ID));
+        return "fixer/jobs";
+    }
+
+  [교체 후]
+    public String list(@SessionAttribute("loginUser") UserDTO loginUser,
+                       Model model) {
+        model.addAttribute("jobList", service.getMyJobs(loginUser.getUserId()));
+        return "fixer/jobs";
+    }
+
+  import 추가: com.surit.user.model.dto.UserDTO (팀 DTO 경로 확인)
+  ※ 인터셉터가 없다면 loginUser 가 null 인 경우도 처리해야 함
+
+  [대상] 총 13곳
+    FixerController      2곳   verifyForm / verify
+    RequestController    2곳   list / detail
+    EstimateController   5곳   list / form(2번) / submit / withdraw
+    JobController        4곳   list / detail / cancel / move
+
+──── 3. CSRF 토큰 추가 (폼 6개) ────
+
+  csrf 를 켜면 토큰 없는 POST 는 전부 403 이 됨.
+  각 <form> 여는 태그 바로 다음 줄에 추가:
+
+    <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+
+  [대상]
+    verify.jsp        신청 폼                    1개
+    estimateForm.jsp  견적 저장 폼                1개
+    estimates.jsp     철회 폼 (c:if 안에 있음)     1개
+    jobDetail.jsp     작업 시작 / 완료 / 취소      3개
+
+  ※ <a> 링크는 GET 이라 필요 없음. <form method="post"> 만 대상
+
+  ※ 미리 넣어둬도 무해함.
+     csrf 가 꺼져 있으면 name="" value="" 로 렌더링되고 서버가 무시함.
+     켜지는 순간 자동으로 값이 채워짐.
+     → 내일 반영할 때 미리 넣어두면 "켰더니 다 안 되네" 사태를 피할 수 있음
+
+──── 4. SecurityConfig — 담당자와 조율 ────
+
+  내가 임의로 켜면 안 됨. 다른 팀원 폼도 전부 403 이 됨.
+
+    http.csrf(withDefaults())                    // ← 이 줄로 바꾸는 시점을 맞춰야 함
+        .formLogin(AbstractHttpConfigurer::disable)
+        .httpBasic(AbstractHttpConfigurer::disable)
+        .logout(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+  ※ authorizeHttpRequests 는 permitAll 유지.
+     시큐리티 로그인을 안 쓰므로 hasRole 은 해당 없음.
+     로그인 체크는 인터셉터가 담당.
+
+  ※ 현재 상태 = 인가만 있고 인증이 없음.
+     fixerId 가 하드코딩이라 접속하는 누구나 fixer1 로 동작함.
+     로그인이 붙어야 비로소 보안이 성립함.
 
 ═══════════════════════════════════════════════════════
 [알고 있는 개선점 — 발표 대비]
@@ -95,6 +170,7 @@ feature/F-17-job-management 브랜치에 한 번에 커밋
    MaxUploadSizeExceededException 은 컨트롤러 진입 전에 발생해
    컨트롤러 try-catch 로 못 잡음.
    @ControllerAdvice + @ExceptionHandler 로 처리 필요.
+
 ═══════════════════════════════════════════════════════
 [예상 질문 답변]
 
@@ -114,4 +190,13 @@ A. 상태 목록과 전이 규칙이 함께 바뀌기 때문입니다.
 Q. 재신청 시 CASCADE 가 있는데 왜 직접 DELETE 하나요?
 A. ON DELETE CASCADE 는 부모 행을 DELETE 할 때만 작동합니다.
    재신청은 UPDATE 라서 자식이 안 지워지고 누적됩니다.
+
+Q. 재신청할 때 기사번호(FIXER_NO)는 왜 그대로 두나요?
+A. UNIQUE 제약이 있고, ESTIMATES·RECEIPT·REVIEW 가 기사를 참조합니다.
+   신분증 번호처럼 한 번 받으면 유지되어야 하는 값입니다.
+
+Q. 견적 철회 검사를 왜 SQL WHERE 절에 넣었나요?
+A. 자바에서 조회 → 검사 → 수정 순으로 하면 그 사이에 고객이 수락할 수 있습니다.
+   그러면 검사는 통과했는데 수락된 견적을 철회로 덮어씁니다.
+   WHERE 에 조건을 넣고 "몇 건 바뀌었나" 로 판단하면 그 틈이 없어집니다.
 ═══════════════════════════════════════════════════════
