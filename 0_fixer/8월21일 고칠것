@@ -58,3 +58,9 @@ git add .
 git commit -m "refactor: 기사 승인 검사를 FixerGuard 로 통합 (중복 3곳 제거)"
 
 git push
+
+
+
+[내일] F-17 브랜치에 수정 3종 커밋 & push
+[전달] 상태값 CHECK 제약 제안 / ESTIMATES_SELECTED 미사용 합의
+[나중] 로그인 붙으면 TempLogin 삭제
