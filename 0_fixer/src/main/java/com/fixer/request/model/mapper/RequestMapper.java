@@ -11,8 +11,6 @@ import com.fixer.request.model.dto.RepairRequestDTO;
 @Mapper
 public interface RequestMapper {
 
-	/** 기사의 승인 상태 (APPROVED 인지 확인용) */
-	String selectFixerApproval(String fixerId);
 
 	/** 내 지역 × 내 분야 에 맞는 대기중 접수 목록 */
 	List<RepairRequestDTO> selectNearbyRequests(String fixerId);
