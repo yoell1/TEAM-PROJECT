@@ -19,30 +19,30 @@
 
 <h2>작업 상세 — <span class="${job.receiptStatus}">${job.statusLabel}</span></h2>
 
-<c:if test="${not empty message}"><p style="color:red;">${message}</p></c:if>
+<c:if test="${not empty message}"><p style="color:red;"><c:out value="${message}"/></p></c:if>
 
 <dl>
-	<dt>접수번호</dt>   <dd>${job.receiptCode}</dd>
-	<dt>제목</dt>       <dd>${job.receiptTitle}</dd>
-	<dt>분야</dt>       <dd>${job.categoryItem}</dd>
+	<dt>접수번호</dt>   <dd><c:out value="${job.receiptCode}"/></dd>
+	<dt>제목</dt>       <dd><c:out value="${job.receiptTitle}"/></dd>
+	<dt>분야</dt>       <dd><c:out value="${job.categoryItem}"/></dd>
 	<dt>모델명</dt>     <dd><c:out value="${job.modelName}" default="-"/></dd>
-	<dt>고객</dt>       <dd>${job.userName} (${job.userPnumber})</dd>
-	<dt>주소</dt>       <dd>${job.receiptAddress}</dd>
-	<dt>증상</dt>       <dd>${job.receiptDetails}</dd>
+	<dt>고객</dt>       <dd><c:out value="${job.userName}"/> (<c:out value="${job.userPnumber}"/>)</dd>
+	<dt>주소</dt>       <dd><c:out value="${job.receiptAddress}"/></dd>
+	<dt>증상</dt>       <dd><c:out value="${job.receiptDetails}"/></dd>
 	<dt>방문 예정</dt>   <dd>${job.visitAtText}</dd>
 	<dt>방문 확정</dt>   <dd><c:out value="${job.visitConfirmedAtText}" default="-"/></dd>
 </dl>
 
 <div class="box">
 	<strong>내 견적</strong><br>
-	금액 ${job.myPrice}원 · 예상 소요시간 ${job.myDuration}<br>
-	${job.myMessage}
+	금액 ${job.myPrice}원 · 예상 소요시간 <c:out value="${job.myDuration}"/><br>
+	<c:out value="${job.myMessage}"/>
 </div>
 
 <c:if test="${job.receiptStatus eq 'CANCELED'}">
 	<div class="box" style="background:#fee;">
 		<strong>취소됨</strong> ${job.canceledAtText}<br>
-		사유: ${job.cancelReason}
+		사유: <c:out value="${job.cancelReason}"/>
 	</div>
 </c:if>
 
