@@ -33,6 +33,7 @@
 		</c:if>
 
 		<form action="/fixer/verify" method="post" enctype="multipart/form-data">
+			<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 
 			<h3>1. 기본 정보</h3>
 			<p>
