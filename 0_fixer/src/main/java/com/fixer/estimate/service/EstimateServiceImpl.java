@@ -78,12 +78,22 @@ public class EstimateServiceImpl implements EstimateService {
 			mapper.insertEstimate(form);
 
 		} else {
+			// 1차 검사 — 사용자에게 읽을 수 있는 메시지를 주기 위한 것
 			if (!PROPOSED.equals(existing.getEstimatesStatus())) {
 				throw new IllegalStateException(
 						"수정할 수 없는 견적입니다. (현재 상태: " + existing.getEstimatesStatus() + ")");
 			}
+
 			form.setEstimatesId(existing.getEstimatesId());
-			mapper.updateEstimate(form);
+
+			// 2차 검사 — 위에서 조회한 뒤 여기까지 오는 사이에 고객이 수락했다면
+			// UPDATE 가 0건이 된다. 그대로 두면 견적 내용은 그대로인데
+			// 옵션만 갈아치워지는 어긋난 상태가 남는다.
+			int updated = mapper.updateEstimate(form);
+			if (updated == 0) {
+				throw new IllegalStateException("견적 상태가 이미 변경되었습니다. 새로고침 후 다시 시도해주세요.");
+			}
+
 			mapper.deleteOptions(form.getEstimatesId());
 		}
 
