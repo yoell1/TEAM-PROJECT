@@ -31,7 +31,7 @@
 </c:if>
 
 <form action="/fixer/estimates" method="post">
-
+	<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 	<input type="hidden" name="repairNo" value="${req.repairNo}">
 
 	<p>
