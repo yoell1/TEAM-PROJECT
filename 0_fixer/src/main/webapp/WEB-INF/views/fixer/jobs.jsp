@@ -20,7 +20,7 @@
 
 <h2>내 작업 관리</h2>
 
-<c:if test="${not empty message}"><p style="color:red;">${message}</p></c:if>
+<c:if test="${not empty message}"><p style="color:red;"><c:out value="${message}"/></p></c:if>
 
 <c:choose>
 	<c:when test="${empty jobList}">
@@ -31,16 +31,15 @@
 		<table>
 			<tr>
 				<th>상태</th><th>접수</th><th>제목</th>
-				<th>고객</th><th>연락처</th>
-				<th>방문 예정</th><th>금액</th>
+				<th>고객</th><th>연락처</th><th>방문 예정</th><th>금액</th>
 			</tr>
 			<c:forEach var="j" items="${jobList}">
 				<tr>
 					<td class="${j.receiptStatus}">${j.statusLabel}</td>
-					<td><c:if test="${j.receiptUrgent eq 1}"><span class="urgent">[긴급]</span> </c:if>${j.receiptCode}</td>
-					<td><a href="/fixer/jobs/${j.repairNo}">${j.receiptTitle}</a></td>
-					<td>${j.userName}</td>
-					<td>${j.userPnumber}</td>
+					<td><c:if test="${j.receiptUrgent eq 1}"><span class="urgent">[긴급]</span> </c:if><c:out value="${j.receiptCode}"/></td>
+					<td><a href="/fixer/jobs/${j.repairNo}"><c:out value="${j.receiptTitle}"/></a></td>
+					<td><c:out value="${j.userName}"/></td>
+					<td><c:out value="${j.userPnumber}"/></td>
 					<td>${j.visitAtText}</td>
 					<td style="text-align:right;">${j.myPrice}원</td>
 				</tr>
