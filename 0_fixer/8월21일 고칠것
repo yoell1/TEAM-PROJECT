@@ -90,6 +90,11 @@ feature/F-17-job-management 브랜치에 한 번에 커밋
 4. 예외 처리가 IllegalStateException 하나로 통일돼 있어 종류별 분기가 불가.
    처리 방식이 갈리면 BusinessException 계층 + @ControllerAdvice 로 개선 가능.
    현재는 모든 실패가 "메시지 표시 후 원래 화면" 이라 무방.
+
+5. 파일 크기 초과 시 Whitelabel 500 화면이 뜸.
+   MaxUploadSizeExceededException 은 컨트롤러 진입 전에 발생해
+   컨트롤러 try-catch 로 못 잡음.
+   @ControllerAdvice + @ExceptionHandler 로 처리 필요.
 ═══════════════════════════════════════════════════════
 [예상 질문 답변]
 
