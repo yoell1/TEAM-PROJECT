@@ -5,10 +5,10 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fixer.common.FixerGuard;
 import com.fixer.job.model.dto.JobDTO;
 import com.fixer.job.model.dto.JobStatus;
 import com.fixer.job.model.mapper.JobMapper;
-import com.fixer.request.model.mapper.RequestMapper;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,17 +16,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class JobServiceImpl implements JobService {
 
-	private static final String APPROVED = "APPROVED";
-
-	private final JobMapper     mapper;
-	private final RequestMapper requestMapper;
+	private final JobMapper  mapper;
+	private final FixerGuard guard;
 
 
 	@Override
 	@Transactional(readOnly = true)
 	public List<JobDTO> getMyJobs(String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		List<JobDTO> jobs = mapper.selectMyJobs(fixerId);
 		for (JobDTO job : jobs) {
@@ -40,7 +38,7 @@ public class JobServiceImpl implements JobService {
 	@Transactional(readOnly = true)
 	public JobDTO getMyJob(Long repairNo, String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		JobDTO job = mapper.selectMyJob(repairNo, fixerId);
 		if (job == null) {
@@ -56,7 +54,7 @@ public class JobServiceImpl implements JobService {
 	@Transactional(rollbackFor = Exception.class)
 	public void moveStatus(String fixerId, Long repairNo, String toStatus) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		JobDTO job = mapper.selectMyJob(repairNo, fixerId);
 		if (job == null) {
@@ -84,7 +82,7 @@ public class JobServiceImpl implements JobService {
 	@Transactional(rollbackFor = Exception.class)
 	public void cancel(String fixerId, Long repairNo, String reason) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		if (reason == null || reason.isBlank()) {
 			throw new IllegalStateException("취소 사유를 입력해주세요.");
@@ -97,19 +95,6 @@ public class JobServiceImpl implements JobService {
 
 		if (updated == 0) {
 			throw new IllegalStateException("취소할 수 없는 작업입니다. (이미 완료되었거나 내 작업이 아님)");
-		}
-	}
-
-
-	private void requireApprovedFixer(String fixerId) {
-
-		String approval = requestMapper.selectFixerApproval(fixerId);
-
-		if (approval == null) {
-			throw new IllegalStateException("기사 인증 신청을 먼저 해주세요.");
-		}
-		if (!APPROVED.equals(approval)) {
-			throw new IllegalStateException("기사 인증이 완료된 후 이용할 수 있습니다.");
 		}
 	}
 }
