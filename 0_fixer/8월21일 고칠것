@@ -1,35 +1,60 @@
-FixerServiceImpl.java   자격증 검증을 파일 저장 앞으로 + 실패 시 업로드 파일 정리
-verify.jsp              c:out 적용
-requests.jsp            c:out 적용
-requestDetail.jsp       c:out 적용
-estimates.jsp           c:out 적용
-estimateForm.jsp        c:out 적용
-jobs.jsp                c:out 적용
-jobDetail.jsp           c:out 적용
+[오늘 추가로 고친 것 — 팀 레포 반영 필요]
 
-bash
-git commit -m "fix(F-14): 자격증 검증을 파일 저장 이전으로 이동, 실패 시 업로드 파일 정리"
-git commit -m "fix: XSS 방지 - 사용자 입력 출력 시 c:out 으로 이스케이프"
-내일 팀 레포에 반영할 때
+전부 feature/F-17-job-management 브랜치에 한 번에 커밋할 것.
+(FixerGuard 가 common 패키지라 F-14 에 넣으면 F-15~17 에서 안 보임)
 
-브랜치가 쌓여 있으니 파일별로 해당 브랜치에서 고쳐야 해:
+① 메모리 누수 방지
+   FixerServiceImpl.java
+   - saveLicenses: 자격증명·발급일 검증을 파일 저장 앞으로
+   - try/catch 로 실패 시 이번에 올린 파일 정리 (savedPaths)
 
-FixerServiceImpl, verify.jsp        → feature/F-14-fixer-verify
-requests.jsp, requestDetail.jsp     → feature/F-15-nearby-requests
-estimates.jsp, estimateForm.jsp     → feature/F-16-estimate-submit
-jobs.jsp, jobDetail.jsp             → feature/F-17-job-management
+② XSS 방지 — ${} → <c:out value="..."/>
+   verify.jsp / requests.jsp / requestDetail.jsp
+   estimates.jsp / estimateForm.jsp / jobs.jsp / jobDetail.jsp
+   단, 서버가 만든 값(코드·날짜·상태·숫자)은 그대로 둠
 
-이미 PR 이 열려 있으니 해당 브랜치에 커밋해서 push 하면 PR 에 자동으로 반영돼. PR 을 새로 만들 필요 없어.
+③ 중복 코드 제거 — 기사 승인 검사 통합
+   신규  com/fixer/common/FixerGuard.java
+   수정  RequestServiceImpl.java    private requireApprovedFixer 삭제 → guard 주입
+   수정  EstimateServiceImpl.java   위와 같음 (RequestMapper 는 유지)
+   수정  JobServiceImpl.java        위와 같음 + RequestMapper 의존 제거
+   삭제  RequestMapper.java  의 selectFixerApproval 선언
+   삭제  RequestMapper.xml   의 <select id="selectFixerApproval">
 
-번거로우면 F-17 브랜치에 한꺼번에 올려도 돼. 어차피 순서대로 머지되니까 결과는 같아. 리뷰가 조금 지저분해질 뿐이야.
+[커밋]
+git checkout feature/F-17-job-management
+git add .
+git commit -m "fix: 업로드 파일 누수 방지, XSS 이스케이프, 기사 승인 검사 통합"
+git push
 
-다음 실행시 할것. 에 추가
-[오늘 추가로 고친 것 - 팀 레포 반영 필요]
-- FixerServiceImpl: 자격증 검증을 파일 저장 앞으로 (고아 파일 방지)
-- JSP 7개: ${} → <c:out> (XSS 방지)
-  단, 서버가 만든 값(코드/날짜/상태/숫자)은 그대로 둠
+[확인]
+- /fixer/verify  파일만 올리고 자격증명 비운 채 신청
+  → 에러 메시지 뜨고 uploads/license 파일 개수 그대로면 ①  성공
+- 접수 증상에 <b>굵게</b> 넣고 상세 열기
+  → 굵어지지 않고 글자 그대로 보이면 ② 성공
+- /fixer/requests · /fixer/estimates · /fixer/jobs 세 화면 정상
+  → ③ 성공 (동작은 그대로여야 함. 리팩터링이라 겉보기 변화 없음)
 
 [아직 안 한 것]
-- 상태값 CHECK 제약 팀에 제안 (FIXER_APPROVAL 등)
-- 통합: 패키지 com.fixer → com.surit, 위치 이동, pom 의존성 확인
-- 로그인 붙으면 TempLogin 삭제
+- 상태값 CHECK 제약 팀에 제안 (FIXER_APPROVAL, RECEIPT_STATUS, ESTIMATES_STATUS)
+- 통합: 패키지 com.fixer → com.surit, 최상위 src 로 이동, pom 의존성 확인
+  (tomcat-embed-jasper, jstl, mybatis-spring-boot-starter, ojdbc11)
+  application.properties 의 mybatis.type-aliases-package, logging.level 도 같이 수정
+- 로그인(F-01) 붙으면 common/TempLogin 삭제하고 세션에서 꺼내기
+- 서비스 인터페이스 4개는 구현체가 하나뿐이라 사실상 형식 (발표 때 설명 가능)
+
+커밋 메시지를 하나로 합친 이유 — 세 수정이 서로 다른 성격이라 원래는 나누는 게 맞아. 그런데 파일이 겹치고(서비스 3개) 브랜치가 하나로 몰리니, 이번엔 한 줄로 묶는 게 실수가 적어.
+
+나누고 싶으면 이렇게:
+
+bash
+git add 0_fixer/src/main/java/com/fixer/verify/service/FixerServiceImpl.java
+git commit -m "fix(F-14): 자격증 검증을 파일 저장 이전으로 이동, 실패 시 업로드 파일 정리"
+
+git add 0_fixer/src/main/webapp
+git commit -m "fix: XSS 방지 - 사용자 입력 출력 시 c:out 으로 이스케이프"
+
+git add .
+git commit -m "refactor: 기사 승인 검사를 FixerGuard 로 통합 (중복 3곳 제거)"
+
+git push
