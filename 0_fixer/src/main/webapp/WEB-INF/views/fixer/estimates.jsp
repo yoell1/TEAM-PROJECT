@@ -19,7 +19,7 @@
 
 <h2>내 견적</h2>
 
-<c:if test="${not empty message}"><p style="color:red;">${message}</p></c:if>
+<c:if test="${not empty message}"><p style="color:red;"><c:out value="${message}"/></p></c:if>
 
 <c:choose>
 	<c:when test="${empty estimateList}">
@@ -34,11 +34,11 @@
 			</tr>
 			<c:forEach var="e" items="${estimateList}">
 				<tr>
-					<td>${e.receiptCode}</td>
-					<td>${e.receiptTitle}</td>
-					<td>${e.userName}</td>
+					<td><c:out value="${e.receiptCode}"/></td>
+					<td><c:out value="${e.receiptTitle}"/></td>
+					<td><c:out value="${e.userName}"/></td>
 					<td style="text-align:right;">${e.estimatesPrice}원</td>
-					<td>${e.estDuration}</td>
+					<td><c:out value="${e.estDuration}"/></td>
 					<td><c:forEach var="lb" items="${e.optionLabels}" varStatus="s">${lb}<c:if test="${not s.last}">, </c:if></c:forEach></td>
 					<td class="${e.estimatesStatus}">${e.estimatesStatus}</td>
 					<td>${e.proposedAtText}</td>
