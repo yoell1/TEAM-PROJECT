@@ -177,6 +177,10 @@ feature/F-17-job-management 브랜치에 한 번에 커밋
    JSP 에서 ${not empty form ? form.xxx : ...} 로 우선 적용.
    단 MultipartFile 은 넘길 수 없어 파일은 재선택 필요.
 
+7. RequestService.getRequestDetail 이 Map<String,Object> 반환.
+   키가 문자열이라 오타가 컴파일에 안 걸리고 조용히 null 이 됨.
+   개선 시 전용 DTO(RequestDetailView) 또는 메서드 분리.
+
 ═══════════════════════════════════════════════════════
 [예상 질문 답변]
 
