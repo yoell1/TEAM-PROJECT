@@ -49,15 +49,16 @@
 <hr>
 
 <c:if test="${job.receiptStatus eq 'MATCHED'}">
-	<form action="/fixer/jobs/${job.repairNo}/start" method="post" style="display:inline;"><button type="submit">작업 시작</button></form>
+	<form action="/fixer/jobs/${job.repairNo}/start" method="post" style="display:inline;"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/><button type="submit">작업 시작</button></form>
 </c:if>
 
 <c:if test="${job.receiptStatus eq 'IN_PROGRESS'}">
-	<form action="/fixer/jobs/${job.repairNo}/complete" method="post" style="display:inline;"><button type="submit">작업 완료</button></form>
+	<form action="/fixer/jobs/${job.repairNo}/complete" method="post" style="display:inline;"><input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/><button type="submit">작업 완료</button></form>
 </c:if>
 
 <c:if test="${job.receiptStatus eq 'MATCHED' or job.receiptStatus eq 'IN_PROGRESS'}">
 	<form action="/fixer/jobs/${job.repairNo}/cancel" method="post" style="margin-top:12px;">
+		<input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
 		<input type="text" name="reason" size="50" maxlength="500" placeholder="취소 사유를 입력하세요" required>
 		<button type="submit">작업 취소</button>
 	</form>
