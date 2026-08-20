@@ -7,6 +7,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fixer.common.FixerGuard;
 import com.fixer.request.model.dto.RepairRequestDTO;
 import com.fixer.request.model.mapper.RequestMapper;
 
@@ -16,16 +17,15 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RequestServiceImpl implements RequestService {
 
-	private static final String APPROVED = "APPROVED";
-
 	private final RequestMapper mapper;
+	private final FixerGuard    guard;
 
 
 	@Override
 	@Transactional(readOnly = true)
 	public List<RepairRequestDTO> getNearbyRequests(String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 		return mapper.selectNearbyRequests(fixerId);
 	}
 
@@ -34,7 +34,7 @@ public class RequestServiceImpl implements RequestService {
 	@Transactional(readOnly = true)
 	public Map<String, Object> getRequestDetail(Long repairNo, String fixerId) {
 
-		requireApprovedFixer(fixerId);
+		guard.requireApprovedFixer(fixerId);
 
 		RepairRequestDTO request = mapper.selectRequestDetail(repairNo, fixerId);
 
@@ -48,20 +48,6 @@ public class RequestServiceImpl implements RequestService {
 		result.put("photos", mapper.selectRequestPhotos(repairNo));
 
 		return result;
-	}
-
-
-	/** 승인된 기사만 접수를 볼 수 있다 */
-	private void requireApprovedFixer(String fixerId) {
-
-		String approval = mapper.selectFixerApproval(fixerId);
-
-		if (approval == null) {
-			throw new IllegalStateException("기사 인증 신청을 먼저 해주세요.");
-		}
-		if (!APPROVED.equals(approval)) {
-			throw new IllegalStateException("기사 인증이 완료된 후 이용할 수 있습니다. (현재 상태: " + approval + ")");
-		}
 	}
 }
 
