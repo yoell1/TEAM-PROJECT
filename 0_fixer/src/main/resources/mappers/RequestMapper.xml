@@ -3,10 +3,6 @@
   "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.fixer.request.model.mapper.RequestMapper">
 
-	<select id="selectFixerApproval" parameterType="string" resultType="string">
-		SELECT FIXER_APPROVAL FROM FIXER_PROFILE WHERE FIXER_ID = #{fixerId}
-	</select>
-
 
 	<!-- 목록에서도 상세에서도 똑같이 쓰는 조건. 한 곳에만 적어두고 재사용한다 -->
 	<sql id="visibleToFixer">
