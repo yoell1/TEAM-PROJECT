@@ -1,0 +1,35 @@
+① 업로드 파일 누수 방지 (고아 파일)
+   FixerServiceImpl.saveLicenses
+   - 자격증명·발급일 검증을 파일 저장보다 앞으로
+   - try/catch 로 실패 시 이번에 올린 파일 정리 (savedPaths)
+   이유: @Transactional 은 DB 만 롤백. 디스크 파일은 안 되돌림
+
+② XSS 방지 — ${} → <c:out value="..."/>
+   verify / requests / requestDetail / estimates
+   estimateForm / jobs / jobDetail  (JSP 7개)
+   단, 서버가 만든 값(코드·날짜·상태·숫자)은 그대로
+   이유: ${} 는 이스케이프를 안 해서 <script> 가 실행됨
+
+③ 중복 제거 — 기사 승인 검사 통합
+   신규  com/fixer/common/FixerGuard.java
+   수정  RequestServiceImpl / EstimateServiceImpl / JobServiceImpl
+         → private requireApprovedFixer 삭제, guard 주입
+         → JobServiceImpl 은 RequestMapper 의존도 제거
+   삭제  RequestMapper.java 의 selectFixerApproval 선언
+   삭제  RequestMapper.xml  의 <select id="selectFixerApproval">
+   이유: 규칙이 3벌이라 바꿀 때 한 곳을 빠뜨리기 쉬움
+
+④ 견적 수정 동시성 검사 추가
+   EstimateServiceImpl.submit 의 else 블록
+   - mapper.updateEstimate(form) 반환값을 받아 updated == 0 이면 예외
+   이유: 조회 후 UPDATE 사이에 고객이 수락하면 0건 수정되는데,
+         그대로 두면 견적 내용은 그대로인 채 옵션만 갈아치워짐
+   ※ 철회(withdrawEstimate) · 작업 상태전이(updateJobStatus) ·
+     작업 취소(cancelJob) 는 원래부터 이 패턴이 적용돼 있었음
+
+⑤ CSRF 토큰 미리 삽입 (폼 6개)
+   <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}"/>
+   verify.jsp(1) / estimateForm.jsp(1) / estimates.jsp(1) / jobDetail.jsp(3)
+   ※ csrf 가 꺼져 있는 지금은 name="" value="" 로 렌더링되고
+     브라우저가 전송조차 안 함 → 영향 없음
+     담당자가 csrf 를 켜는 순간 자동으로 값이 채워져 동작
